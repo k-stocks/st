@@ -48,3 +48,9 @@ td.ed{cursor:pointer}#etfToggle{margin-left:6px}@media(max-width:560px){.stat6{g
 .board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}.board>div{border:1px solid var(--line);border-radius:12px;padding:12px 6px;text-align:center;background:var(--card)}.board .bu{background:#fff6f6}.board .bf{background:#f4f5f7}.board .bf span{color:#8b93a1}.board .bdn{background:#f3f7ff}.board span{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px}.board b{display:block;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
 
 .etf-opt{margin:-2px 0 10px;display:flex;gap:6px}.etf-opt button{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;font-size:12px;font-weight:700;color:#657286}.etf-opt button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+
+/* 새로고침 버튼: '시장 수급 분석' 화면의 버튼과 동일한 모양 */
+button#refresh.refresh{font:inherit;cursor:pointer;width:34px;height:34px;padding:0;border:1px solid var(--line);background:#f8f9fb;border-radius:10px;color:#657287;font-size:17px;font-weight:400;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+button#refresh.refresh:active{background:#eaf0f7}
+button#refresh.refresh:disabled{opacity:.55}
+@media(max-width:650px){button#refresh.refresh{font-size:17px;padding:0}}
