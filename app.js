@@ -1,20 +1,22 @@
-const WORKER='https://st.hundprint.workers.dev';
+const WORKER='https://st.mcraft-tiger-574.workers.dev';
 const DESKTOP='https://stock.naver.com';
 const $=id=>document.getElementById(id);
 const kinds={
- priceTop:{title:'거래대금 상위 50',desc:'당일 누적 거래대금 순',metric:'거래대금',order:'priceTop'},
- quantTop:{title:'거래량 상위 50',desc:'당일 누적 거래량 순',metric:'거래량',order:'quantTop'},
- marketSum:{title:'시가총액 상위 50',desc:'시가총액 순',metric:'시가총액',order:'marketSum'},
- popular:{title:'인기 종목 50',desc:'네이버 증권 인기 종목 순',metric:'인기 지수',order:'popular'},
- up:{title:'상승 상위 50',desc:'당일 등락률 높은 순',metric:'등락률',order:'up'},
- flat:{title:'보합 종목',desc:'등락 없는 종목 · 거래대금 순',metric:'거래대금',derived:true},
- down:{title:'하락 상위 50',desc:'당일 등락률 낮은 순',metric:'등락률',order:'down'},
- volSurge:{title:'거래량 급증 50',desc:'전일 대비 거래량 증가율 높은 순',metric:'거래량 증감',derived:true},
- volDrop:{title:'거래량 급감 50',desc:'전일 대비 거래량 감소율 큰 순',metric:'거래량 증감',derived:true},
- high52:{title:'52주 최고 종목',desc:'당일 52주 최고가 기록 · 거래대금 순',metric:'52주 최고',derived:true},
- low52:{title:'52주 최저 종목',desc:'당일 52주 최저가 기록 · 거래대금 순',metric:'52주 최저',derived:true}
+ priceTop:{title:'거래대금 상위 {n}',desc:'당일 누적 거래대금 순',metric:'거래대금',order:'priceTop'},
+ quantTop:{title:'거래량 상위 {n}',desc:'당일 누적 거래량 순',metric:'거래량',order:'quantTop'},
+ marketSum:{title:'시가총액 상위 {n}',desc:'시가총액 순',metric:'시가총액',order:'marketSum'},
+ popular:{title:'인기 종목 {n}',desc:'네이버 증권 인기 종목 순',metric:'인기 지수',order:'popular'},
+ up:{title:'상승 상위 {n}',desc:'당일 등락률 높은 순',metric:'등락률',order:'up'},
+ flat:{title:'보합 종목',desc:'네이버 증권 보합 목록 기준',metric:'거래대금',order:'flat'},
+ down:{title:'하락 상위 {n}',desc:'당일 등락률 낮은 순',metric:'등락률',order:'down'},
+ volSurge:{title:'거래량 급증 {n}',desc:'전일 대비 거래량 증가율 높은 순 · 네이버 목록',metric:'거래량 증감',order:'upperQuantTop'},
+ volDrop:{title:'거래량 급감 {n}',desc:'전일 대비 거래량 감소율 큰 순 · 네이버 목록',metric:'거래량 증감',order:'lowerQuantTop'},
+ high52:{title:'52주 최고 종목',desc:'네이버 증권 52주 최고 목록 기준',metric:'52주 최고',order:'high52week'},
+ low52:{title:'52주 최저 종목',desc:'네이버 증권 52주 최저 목록 기준',metric:'52주 최저',order:'low52week'}
 };
-let active='priceTop',market='ALL',cache={};
+let active='priceTop',market='ALL',cache={},N=20;
+const STRICT={flat:1,high52:1,low52:1};
+const ttl=k=>kinds[k].title.replace('{n}',N);
 // 종목코드 우선 분류. 회사명 키워드 추정보다 정확한 코드 매핑을 먼저 적용합니다.
 const sectorMap={
  // 반도체·전자부품
@@ -82,7 +84,7 @@ const dbg={raw:[],ind:'',src:{}},EXT={};
 const LSK={ovr:'sector_override_v1',ind:'sector_naver_v1'};
 const ldLS=k=>{try{return JSON.parse(localStorage.getItem(k)||'{}')}catch(e){return {}}};
 const svLS=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
-let ovr=ldLS(LSK.ovr),indC=ldLS(LSK.ind),cur=[];const tried=new Set();let ORD=ldLS('order_map_v1');try{if(!localStorage.getItem('ord_clean_v13')){['volSurge','volDrop','high52','low52'].forEach(k=>delete ORD[k]);localStorage.setItem('order_map_v1',JSON.stringify(ORD));localStorage.setItem('ord_clean_v13','1')}}catch(e){}
+let ovr=ldLS(LSK.ovr),indC=ldLS(LSK.ind),cur=[];const tried=new Set();let ORD=ldLS('order_map_v1');try{if(!localStorage.getItem('ord_clean_v17')){['flat','volSurge','volDrop','high52','low52'].forEach(k=>delete ORD[k]);localStorage.setItem('order_map_v1',JSON.stringify(ORD));localStorage.setItem('ord_clean_v17','1')}}catch(e){}
 [[/소프트|시스템|정보통신|데이터|클라우드|인공지능|솔루션/,'IT·소프트웨어','소프트웨어·IT서비스·AI'],
  [/의료|메디|헬스|덴탈|임플란트/,'의료기기·헬스케어','의료기기·진단·헬스케어'],
  [/디스플레이|OLED|LED|광학|카메라|센서|이노텍|전자/,'전자부품·디스플레이','전자부품·디스플레이·센서'],
@@ -195,18 +197,18 @@ async function load(kind=active,force=false){
  active=kind;
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.kind===kind));
  {const a=document.querySelector&&document.querySelector('#tabs button.active');if(a&&a.scrollIntoView&&typeof window!=='undefined'&&window.innerWidth>700)a.scrollIntoView({inline:'center',block:'nearest'})}
- const cfg=kinds[kind];$('summary-title').textContent=cfg.title;$('list-title').textContent=cfg.title;$('list-desc').textContent=cfg.desc;$('metric-head').textContent=cfg.metric;
+ const cfg=kinds[kind];$('list-title').textContent=ttl(kind);$('list-desc').textContent=cfg.desc;$('metric-head').textContent=cfg.metric;
  if(!cache[kind])$('rows').innerHTML='<div class="empty">순위를 불러오는 중입니다…</div>';
  try{
   let data;
   if(!force&&cache[kind])data=cache[kind];
-  else if(cfg.derived&&!ORD[kind]){data=derive(kind,await loadUniverse());cache[kind]=data}
+  else if(STRICT[kind]){data=await loadStrict(kind);cache[kind]=data}
   else{
-   const U=o=>ordUrl(o,market);
+   const U=o=>ordUrl(o,market,200);
    const mn=ORD[kind]?1:10;
-   const urls=ORD[kind]?[U(ORD[kind])]:kind==='popular'?[U('top'),`${DESKTOP}/api/domestic/market/searchTop?nationType=KOR&startIdx=0&pageSize=50`]:[U(cfg.order)];
+   const urls=ORD[kind]?[U(ORD[kind])]:kind==='popular'?[U('searchTop'),U('top')]:[U(cfg.order)];
    let lastErr;const errs=[];data=[];
-   for(const u of urls){try{const d=getRows(await fetchJson(u));if(d.length>=mn){data=d;dbg.src[kind]=ORD[kind]?'저장된 이름 '+ORD[kind]:u.includes('searchTop')?'searchTop':'stocklist';break}}catch(e){lastErr=e;errs.push((u.match(/orderType=(\w+)/)||u.match(/listingType=(\w+)/)||u.match(/market\/([\w\/]+)/)||[0,'?'])[1]+' '+String(e.message).replace(/\D+/g,' ').trim())}}
+   for(const u of urls){try{const d=await fetchRows(u);if(d.length>=mn){data=d;dbg.src[kind]=ORD[kind]?'저장된 이름 '+ORD[kind]:u.includes('searchTop')?'searchTop':'stocklist';break}}catch(e){lastErr=e;errs.push((u.match(/orderType=(\w+)/)||u.match(/listingType=(\w+)/)||u.match(/market\/([\w\/]+)/)||[0,'?'])[1]+' '+String(e.message).replace(/\D+/g,' ').trim())}}
    if(data.length<mn&&lastErr){if(kind==='popular'&&!ORD.popular&&shouldProbe('popular')){$('rows').innerHTML='<div class="empty">인기 종목 주소를 자동으로 찾는 중입니다…</div>';const f=await probeKind('popular');if(f){ORD.popular=f;svLS('order_map_v1',ORD);return load(kind,true)}}throw new Error('데이터 요청 오류 ('+errs.join(', ')+')')}
    if(data.length<mn)throw new Error(`응답에서 종목 ${data.length}개만 확인했습니다. 원본 API 구조가 변경됐을 수 있습니다.`);
    cache[kind]=data;
@@ -232,14 +234,60 @@ async function loadUniverse(){
  let more=0;for(const r of ex)for(const x of r)if(!seen.has(x.code)){seen.add(x.code);all.push(x);more++}
  UNI=all;UNIAT=Date.now();dbg.src.uni=all.length+'종목 (페이지당 '+ps+', 상위목록 합집합 +'+more+')';return all;
 }
+// 방향: 전일대비 금액 부호 우선, 없으면 등락률 부호. 판단 불가면 null(상승·보합·하락 어디에도 넣지 않음)
+function sd(x){const f=x.diff!=null&&!x.unsure?x.diff:null;if(f!==null)return Math.sign(f)||0;if(x.rate!=null)return Math.sign(x.rate)||0;return null}
+// 52주 최고/최저: 당일 고가(저가)가 52주 최고가(최저가) 이상(이하)인 종목만. 고가·저가 값이 없으면 현재가로 판단
+function hiOK(x){return x.w52h>0&&((hlMode==='close'||!(x.hi>0))?x.price>=x.w52h:x.hi>=x.w52h)}
+function loOK(x){return x.w52l>0&&((hlMode==='close'||!(x.lo>0))?x.price<=x.w52l:x.lo<=x.w52l)}
 function derive(kind,uni){
- const L=uni.filter(x=>!isEtf(x)&&!x.halt&&x.volume>0&&x.price>0),byV=(a,b)=>(b.value||0)-(a.value||0);
- if(kind==='flat')return L.filter(x=>x.rate===0).sort(byV);
- if(kind==='volSurge')return L.filter(x=>x.qr!=null&&x.pq>0&&x.qr>0&&(x.value||0)>=minVal).sort((a,b)=>b.qr-a.qr);
- if(kind==='volDrop')return L.filter(x=>x.qr!=null&&x.pq>0&&x.qr<0&&(x.value||0)>=minVal).sort((a,b)=>a.qr-b.qr);
- if(kind==='high52')return L.filter(x=>x.w52h>0&&(hlMode==='close'?x.price>=x.w52h:x.hi>0&&x.hi>=x.w52h)).sort(byV);
- if(kind==='low52')return L.filter(x=>x.w52l>0&&(hlMode==='close'?x.price<=x.w52l:x.lo>0&&x.lo<=x.w52l)).sort(byV);
+ const L=uni.filter(x=>(!exEtf||!isEtf(x))&&!x.halt&&x.price>0),vol=x=>x.volume==null||x.volume>0,L2=L.filter(x=>x.volume>0);
+ const val=x=>x.value!=null?x.value:(x.volume>0&&x.price>0?x.volume*x.price:0),byV=(a,b)=>val(b)-val(a);
+ if(kind==='flat')return L.filter(x=>vol(x)&&sd(x)===0).sort(byV);
+ if(kind==='volSurge')return L2.filter(x=>x.qr!=null&&x.pq>0&&x.qr>0&&(x.value||0)>=minVal).sort((a,b)=>b.qr-a.qr);
+ if(kind==='volDrop')return L2.filter(x=>x.qr!=null&&x.pq>0&&x.qr<0&&(x.value||0)>=minVal).sort((a,b)=>a.qr-b.qr);
+ if(kind==='high52')return L.filter(x=>vol(x)&&hiOK(x)).sort(byV);
+ if(kind==='low52')return L.filter(x=>vol(x)&&loOK(x)).sort(byV);
  return L;
+}
+// 보합·52주 최고·최저: 네이버 목록(최대 200종목)과 전체 종목 데이터를 합쳐, 조건을 직접 검증한 종목만 표시
+async function fetchRows(u){
+ try{const d=getRows(await fetchJson(u));if(d.length)return d}catch(e){if(!/(pageSize|size)=200\b/.test(u))throw e}
+ return getRows(await fetchJson(u.replace(/(pageSize|size)=200\b/,'$1=100')));
+}
+// 네이버 stocklist 탭 정렬 이름 후보 (앞에서부터 시도, 첫 번째로 검증을 통과한 이름을 사용)
+const ORDC={
+ flat:['flat','steady','unchanged','lt:flat','lt:steady','lt:unchanged','path:flat','path:steady'],
+ high52:['high52week','highPrice52week','week52High','high52','lt:high52week','lt:week52High'],
+ low52:['low52week','lowPrice52week','week52Low','low52','lt:low52week','lt:week52Low']
+};
+// 네이버가 준 목록 그대로 사용하되, 엉뚱한 목록(다른 탭과 같은 목록 등)이 오면 걸러냄
+const STRICT_OK={
+ flat:a=>a.length>=1&&a.slice(0,10).filter(x=>x.rate===0||x.diff===0||x.rate===null).length>=Math.min(a.length,10)*0.6,
+ high52:a=>a.length>=1&&(a.slice(0,10).some(x=>x.w52h>0)?a.slice(0,10).filter(x=>!(x.w52h>0)||!(x.price>0)||x.price>=x.w52h*0.9).length>=Math.min(a.length,10)*0.6:true),
+ low52:a=>a.length>=1&&(a.slice(0,10).some(x=>x.w52l>0)?a.slice(0,10).filter(x=>!(x.w52l>0)||!(x.price>0)||x.price<=x.w52l*1.1).length>=Math.min(a.length,10)*0.6:true)
+};
+async function loadStrict(kind){
+ const cands=[...new Set([ORD[kind],kinds[kind].order,...(ORDC[kind]||[])].filter(Boolean))];
+ const base=await getBase();let list=[],used='',lastErr=null;
+ for(const o of cands){
+  try{
+   const d=await fetchRows(ordUrl(o,market,200));
+   if(d.length&&!base.includes(sig(d))&&STRICT_OK[kind](d)){list=d;used=o;break}
+  }catch(e){lastErr=e}
+ }
+ if(list.length){
+  if(ORD[kind]!==used){ORD[kind]=used;svLS('order_map_v1',ORD)}
+  dbg.src[kind]='네이버 목록 '+used+' · '+list.length+'종목 (필터 없이 그대로 표시)';
+  // 목록에 없는 값(전일종가·거래대금 등)만 전체 종목 데이터로 보완. 종목 선정에는 영향 없음
+  if(UNI){const m=new Map(UNI.map(x=>[x.code,x]));list.forEach(x=>{const u=m.get(x.code);if(u)for(const k in u)if(x[k]==null||x[k]==='')x[k]=u[k]})}
+  return list;
+ }
+ // 네이버 목록을 못 찾은 경우에만 기존 계산 방식으로 대체
+ if(ORD[kind]){delete ORD[kind];svLS('order_map_v1',ORD)}
+ let uni=[];try{uni=await loadUniverse()}catch(e){lastErr=e}
+ if(!uni.length)throw lastErr||new Error('종목 데이터를 불러오지 못했습니다.');
+ dbg.src[kind]='네이버 목록을 찾지 못해 전체 '+uni.length+'종목에서 계산(대체)';
+ return derive(kind,uni);
 }
 const mo=x=>{switch(active){
  case 'priceTop':return '대금 '+money(x.value);case 'quantTop':return fmt(x.volume);case 'marketSum':return money(x.cap);
@@ -254,23 +302,19 @@ function agg(list){
  return {tot,W,avg:list.reduce((s,x)=>s+(x.rate||0)*w(x),0)/W,arr:Object.entries(g).map(([s,a])=>({s,n:a.n,share:a.w/W*100,avg:a.w?a.rw/a.w:0,top:a.top.name})).sort((a,b)=>b.share-a.share||b.n-a.n)};
 }
 const cls2=v=>v>0?'up':v<0?'down':'';
-let sortBy='rank',secF=null,secOpen=false,minVal=0,hlMode='intra';
+let exEtf=false,sortBy='rank',secF=null,secOpen=false,minVal=0,hlMode='intra';
 const cls3=v=>v>0?'up':v<0?'down':'flat';
-function renderOpts(){const el=$('opts');if(!el)return;const a=active;let h='';
- if(a==='volSurge'||a==='volDrop')h='<small>최소 거래대금</small>'+[[0,'제한 없음'],[1e8,'1억↑'],[1e9,'10억↑'],[5e9,'50억↑']].map(([v,t])=>`<button data-opt="min:${v}" class="${minVal===v?'selected':''}">${t}</button>`).join('');
- else if(a==='high52'||a==='low52')h='<small>기준</small>'+[['intra',a==='high52'?'장중 고가':'장중 저가'],['close','현재가(종가)']].map(([v,t])=>`<button data-opt="mode:${v}" class="${hlMode===v?'selected':''}">${t}</button>`).join('');
- el.hidden=!h;el.innerHTML=h}
+function renderOpts(){const el=$('opts');if(el){el.hidden=true;el.innerHTML=''}}
 function render(data){
  renderOpts();
- if(kinds[active].derived)$('list-desc').textContent=kinds[active].desc+(ORD[active]?' · 네이버 목록':UNI?' · 전체 '+UNI.length+'종목 기준 계산'+((active==='volSurge'||active==='volDrop')&&minVal?' · 거래대금 '+money(minVal)+' 이상':''):'');
+ 
  data.forEach(x=>{const e=EXT[x.code];if(!e)return;if(x.value==null&&e.value!=null)x.value=e.value;if(x.unsure&&e.prev>0&&x.price!=null){x.prev=e.prev;x.diff=x.price-e.prev;x.rate=x.diff/e.prev*100;x.basis='전일종가(상세조회)';x.unsure=false}});
  data.forEach(x=>{[x.sector,x.detail,x.src]=classify(x)});
- const rows=(market==='ALL'?data:data.filter(x=>!x.market||x.market.includes(market))).filter(x=>!isEtf(x));
- const base=rows.slice(0,50);base.forEach((x,i)=>x.rk=i+1);cur=base;
+ const rows=(market==='ALL'?data:data.filter(x=>!x.market||x.market.includes(market))).filter(x=>!exEtf||!isEtf(x));
+ const base=rows.slice(0,N);base.forEach((x,i)=>x.rk=i+1);cur=base;
  if(secF&&!base.some(x=>x.sector===secF))secF=null;
- const up=base.filter(x=>(x.rate||0)>0).length,down=base.filter(x=>(x.rate||0)<0).length,flat=base.length-up-down;
- $('summary-count').textContent=base.length+'개';
- const p2=n=>String(n).padStart(2,'0');$('summary-breadth').innerHTML=`<span class="up">${p2(up)}</span> / <span class="flat">${p2(flat)}</span> / <span class="down">${p2(down)}</span>`;
+ const up=base.filter(x=>sd(x)===1).length,down=base.filter(x=>sd(x)===-1).length,flat=base.filter(x=>sd(x)===0).length;
+ $('b-up').textContent=up;$('b-flat').textContent=flat;$('b-down').textContent=down;
  const {tot,avg,arr}=agg(base),vs=f=>base.filter(f).reduce((s,x)=>s+(x.value||0),0);
  let list=secF?base.filter(x=>x.sector===secF):base.slice();
  if(sortBy==='rate')list.sort((a,b)=>(b.rate||0)-(a.rate||0));
@@ -302,6 +346,8 @@ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;',
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-kind]');if(b){market='ALL';document.querySelectorAll('.filters button').forEach(x=>x.classList.toggle('selected',x.dataset.market==='ALL'));load(b.dataset.kind)}});
 document.querySelectorAll('.filters button').forEach(b=>b.addEventListener('click',()=>{market=b.dataset.market;document.querySelectorAll('.filters button').forEach(x=>x.classList.toggle('selected',x===b));cache[active]=null;load(active,true)}));
 $('refresh').addEventListener('click',()=>load(active,true));
+$('etf-toggle').addEventListener('click',()=>{exEtf=!exEtf;const b=$('etf-toggle');b.classList.toggle('on',exEtf);b.setAttribute('aria-pressed',exEtf);b.textContent=exEtf?'✓ ETF·ETN 제외 중 (누르면 포함)':'ETF·ETN 제외하기';if(cache[active])render(cache[active]);else load(active,true)});
+$('cnt-tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-n]');if(!b)return;N=+b.dataset.n;document.querySelectorAll('#cnt-tabs button').forEach(x=>x.classList.toggle('active',x===b));$('list-title').textContent=ttl(active);if(cache[active])render(cache[active])});
 load();
 
 document.addEventListener('click',e=>{
@@ -311,9 +357,13 @@ document.addEventListener('click',e=>{
  if(e.target.id==='clr'){e.preventDefault();secF=null;render(cache[active]||[]);return}
  const s=e.target.closest('button[data-sort]');if(s){sortBy=s.dataset.sort;document.querySelectorAll('.sorts button').forEach(b=>b.classList.toggle('selected',b===s));render(cache[active]||[])}
 });
-setInterval(()=>{if(!document.hidden)load(active,true)},60000);
+let autoOn=false;
+function paintAuto(){const b=$('auto-toggle');b.classList.toggle('on',autoOn);b.setAttribute('aria-pressed',autoOn);b.textContent=autoOn?'자동갱신 켜짐 (60초)':'자동갱신 꺼짐 (수동)';$('auto-note').textContent=autoOn?'60초 자동 갱신':'자동 갱신 꺼짐 · ↻ 새로고침으로 갱신'}
+$('auto-toggle').addEventListener('click',()=>{autoOn=!autoOn;paintAuto();if(autoOn)load(active,true)});
+paintAuto();
+setInterval(()=>{if(autoOn&&!document.hidden)load(active,true)},60000);
 
-(function(){const b=document.createElement('p');b.className='dbgbar';b.innerHTML='<a href="#" id="dbgL">데이터 점검 · 분류 백업 (V14)</a>';document.body.appendChild(b)})();
+(function(){const b=document.createElement('p');b.className='dbgbar';b.innerHTML='<a href="#" id="dbgL">데이터 점검 · 분류 백업 (V20)</a>';document.body.appendChild(b)})();
 document.addEventListener('click',e=>{
  if(e.target.id==='dbgL'){e.preventDefault();let p=document.getElementById('dbgP');if(!p){p=document.createElement('div');p.id='dbgP';p.className='dbgp';document.body.appendChild(p)}
   const x=cur.slice(0,3).map(y=>({name:y.name,price:y.price,prev:y.prev,diff:y.diff,rate:y.rate&&+y.rate.toFixed(2),basis:y.basis}));
@@ -328,14 +378,14 @@ async function syncPull(){try{const r=await fetch(WORKER+'/?sectors=1',{cache:'n
 document.addEventListener('click',e=>{if(e.target.id==='secMore'){secOpen=!secOpen;render(cache[active]||[])}});
 syncPull();
 
-function ordUrl(o,mk='ALL'){
+function ordUrl(o,mk='ALL',ps=100){
  const D=DESKTOP+'/api/';
- if(o.startsWith('lt:'))return `${D}stockSecurity/individual-stocks/v3/domestic?listingType=${o.slice(3)}&exchangeType=KRX&index=0&size=100`;
- if(o.startsWith('path:'))return `${D}domestic/market/${o.slice(5)}?nationType=KOR&tradeType=KRX&marketType=${mk}&startIdx=0&pageSize=100`;
- return `${D}domestic/market/stock/default?tradeType=KRX&marketType=${mk}&orderType=${o}&startIdx=0&pageSize=100`;
+ if(o.startsWith('lt:'))return `${D}stockSecurity/individual-stocks/v3/domestic?listingType=${o.slice(3)}&exchangeType=KRX&index=0&size=${ps}`;
+ if(o.startsWith('path:'))return `${D}domestic/market/${o.slice(5)}?nationType=KOR&tradeType=KRX&marketType=${mk}&startIdx=0&pageSize=${ps}`;
+ return `${D}domestic/market/stock/default?tradeType=KRX&marketType=${mk}&orderType=${o}&startIdx=0&pageSize=${ps}`;
 }
 const CAND={
- popular:['top','searchTop','popular','path:searchTop','path:stock/searchTop','path:popular','lt:popular','lt:searchTop','lt:popularDesc','hit','hot','interest','search','view'],
+ popular:['searchTop','top','popular','path:searchTop','path:stock/searchTop','path:popular','lt:popular','lt:searchTop','lt:popularDesc','hit','hot','interest','search','view'],
  flat:['steady','unchanged','lt:unchanged','lt:steady','lt:flat','flat','noChange','lt:noChange','even','same']
 };
 const sig=a=>a.slice(0,10).map(x=>x.code).join();
