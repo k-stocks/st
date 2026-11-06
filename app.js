@@ -1,4 +1,4 @@
-const WORKER='https://st.hundprint.workers.dev';
+const WORKER='https://st.mcraft-tiger-574.workers.dev';
 const DESKTOP='https://stock.naver.com';
 const $=id=>document.getElementById(id);
 const kinds={
@@ -419,3 +419,7 @@ document.addEventListener('click',e=>{
 });
 
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button[data-opt]');if(!b)return;const [k,v]=b.dataset.opt.split(':');if(k==='min')minVal=+v;else hlMode=v;cache[active]=null;load(active,true)});
+
+// 명암(다크/라이트) 전환
+(function(){const b=document.getElementById('theme');if(!b)return;const m=document.querySelector('meta[name="theme-color"]');
+b.addEventListener('click',()=>{const d=document.documentElement.classList.toggle('dark');if(m)m.content=d?'#151a22':'#f3f6fb';try{localStorage.setItem('theme_v1',d?'dark':'light')}catch(e){}});})();

@@ -54,3 +54,38 @@ button#refresh.refresh{font:inherit;cursor:pointer;width:34px;height:34px;paddin
 button#refresh.refresh:active{background:#eaf0f7}
 button#refresh.refresh:disabled{opacity:.55}
 @media(max-width:650px){button#refresh.refresh{font-size:17px;padding:0}}
+
+/* 명암 버튼 (새로고침 버튼 왼쪽) */
+.tools{display:flex;align-items:center;gap:6px}
+button#theme.theme-btn{font:inherit;cursor:pointer;width:34px;height:34px;padding:0;border:1px solid var(--line);background:#f8f9fb;border-radius:10px;color:#657287;font-size:17px;font-weight:400;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+button#theme.theme-btn:active{background:#eaf0f7}
+
+/* 다크 모드 */
+html.dark{color-scheme:dark;--bg:#151a22;--card:#202733;--line:#303a49;--text:#edf1f6;--muted:#9aa6b8;--navy:#38577f}
+html.dark header{background:#1c232eed}
+html.dark .refresh,html.dark button#refresh.refresh,html.dark button#theme.theme-btn{background:#202733;border-color:var(--line);color:#c3cddb}
+html.dark button#refresh.refresh:active,html.dark button#theme.theme-btn:active{background:#2a3343}
+html.dark .tabs button,html.dark .cnt-tabs button,html.dark .etf-opt button,html.dark .filters button,html.dark .sorts button,html.dark .anchors a{background:#202733;border-color:var(--line);color:#aab5c5}
+html.dark .tabs button.active,html.dark .cnt-tabs button.active,html.dark .etf-opt button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+html.dark .filters button.selected,html.dark .sorts button.selected{background:#2a3a52;border-color:#3b5278;color:#cfe0f7}
+html.dark .tabs button small{color:#7f8ca0}
+html.dark .tabs{border-bottom-color:#303a49}
+html.dark .trend li,html.dark .more,html.dark .dbgp pre{background:#1a212c}
+html.dark .more{color:#cfe0f7}
+html.dark .chip{background:#2a3a52;color:#cfe0f7}
+html.dark .vl,html.dark .metric{color:#d5deea}
+html.dark .it,html.dark td,html.dark .sec-t th,html.dark .sec-t td{border-color:#2a3343}
+html.dark thead{background:#1a212c}
+html.dark .bar{background:#2c3646}
+html.dark .board .bu{background:#2b1f26}
+html.dark .board .bf{background:#232a35}
+html.dark .board .bdn{background:#1e2735}
+html.dark .sec-t tr.on{background:#2a3a52}
+html.dark #sec-filter a{color:#cfe0f7}
+html.dark .dbgp{background:#202733}
+html.dark #opts small{color:#9aa6b8!important}
+html.dark .up{color:#ff6b6b!important}
+html.dark .down{color:#5b9bff!important}
+html.dark .flat{color:#9aa6b8!important}
+html.dark footer a{color:#8fb0d6}
+html.dark .eyebrow{color:#7fa3cc}
