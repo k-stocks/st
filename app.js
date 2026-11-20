@@ -1,4 +1,4 @@
-const WORKER='https://st.hundprint.workers.dev';
+const WORKER='https://st.mcraft-tiger-574.workers.dev';
 const DESKTOP='https://stock.naver.com';
 const $=id=>document.getElementById(id);
 const kinds={
@@ -532,6 +532,29 @@ async function loadArchiveRows(){
 }
 if($('archive-date')){
  $('archive-refresh').addEventListener('click',()=>loadArchiveDates(true));
+ const recoveryBtn=$('manual-recovery');
+ if(recoveryBtn){
+  const recoveryStatus=$('archive-status');
+  const kstNowMinutes=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());return Number(p.find(x=>x.type==='hour')?.value||0)*60+Number(p.find(x=>x.type==='minute')?.value||0)};
+  let recoveryBusy=false;
+  const updateRecoveryAvailability=()=>{const allowed=kstNowMinutes()>=20*60+10;if(!recoveryBusy){recoveryBtn.disabled=!allowed;recoveryBtn.textContent=allowed?'누락 데이터 복구':'20:10 이후 복구 가능';recoveryBtn.title=allowed?'오늘 누락된 데이터만 복구합니다.':'한국시간 20:10 이후에 사용할 수 있습니다.';} if(!allowed&&recoveryStatus)recoveryStatus.textContent='당일 랭킹 데이터는 한국시간 20:10에 최초 저장됩니다. 그 전에는 저장 및 복구가 실행되지 않습니다.';};
+  updateRecoveryAvailability();
+  setInterval(updateRecoveryAvailability,30000);
+  recoveryBtn.addEventListener('click',async()=>{
+  if(kstNowMinutes()<20*60+10){updateRecoveryAvailability();return;}
+  if(!confirm('오늘 저장 기록에서 실패하거나 누락된 항목만 다시 수집합니다. 정상 저장된 데이터는 다시 수집하지 않습니다. 실행할까요?'))return;
+  recoveryBusy=true;recoveryBtn.disabled=true;recoveryBtn.textContent='복구 중…';
+  const status=$('archive-status');status.textContent='복구 요청 전송 완료 · 서버에서 오늘 기록을 확인하고 누락 항목을 복구하고 있습니다. 완료될 때까지 기다려 주세요.';
+  try{
+   const r=await fetch(WORKER+'/?archive=recover',{method:'POST',cache:'no-store'}),j=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(j.error||'복구 요청 실패 ('+r.status+')');
+   if(j.skipped)status.textContent='복구할 데이터가 없습니다. 오늘 수집 항목이 모두 정상입니다.';
+   else status.textContent=`수동 복구 완료 · 재수집 대상 ${j.retryCount||0}건 · 성공 ${j.recoveredSuccessCount||0}건 · 실패 ${j.recoveredFailureCount||0}건${j.retryCount===0?' · 오늘 수집 기록이 모두 정상입니다.':''}`;
+   await loadArchiveDates(true);
+  }catch(e){status.textContent='수동 복구 실패: '+e.message}
+  finally{recoveryBusy=false;recoveryBtn.disabled=false;updateRecoveryAvailability();}
+  });
+ }
  $('archive-query').addEventListener('click',loadArchiveRows);
  $('archive-expand').addEventListener('click',()=>{const c=$('archive-content'),b=$('archive-expand'),open=c.hidden;c.hidden=!open;b.setAttribute('aria-expanded',String(open));b.textContent=open?'▲ 저장 기록 전체 접기':'▼ 저장 기록 전체 펼쳐보기';if(open)renderArchive()});
  $('archive-cnt-tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-archive-n]');if(!b)return;archiveN=+b.dataset.archiveN;$('archive-cnt-tabs').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));renderArchive()});
