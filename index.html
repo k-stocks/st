@@ -50,7 +50,7 @@
 <div id="notice" class="notice">네이버 증권 공개 데이터를 불러옵니다. 실제 집계 시점과 거래소 반영 시점에 따라 HTS와 차이가 날 수 있습니다.</div>
 </section>
 <section class="sector-card archive-card" id="daily-archive">
- <div class="section-head"><div><h2>일별 종가 기록</h2><p>매일 한국시간 20:10 자동 저장 · 날짜별 11개 랭킹</p></div><div class="archive-actions"><button id="archive-refresh" type="button">기록 새로고침</button><button id="archive-delete" type="button">날짜별 기록 삭제</button><button id="manual-recovery" type="button">누락 데이터 복구</button></div></div>
+ <div class="section-head"><div><h2>일별 종가 기록</h2><p>매일 한국시간 20:10 자동 저장 · 날짜별 11개 랭킹</p></div><div class="archive-actions"><button id="archive-refresh" type="button">기록 새로고침</button><button id="archive-delete" type="button">날짜별 기록 삭제</button><button id="manual-recovery" type="button">누락 데이터 채우기</button></div></div>
  <div id="manual-recovery-result" class="notice recovery-result" role="status" aria-live="polite" hidden></div>
  <div class="archive-controls"><label for="archive-date">저장 날짜</label><select id="archive-date"><option value="">기록 확인 중…</option></select><label for="archive-kind">랭킹 항목</label><select id="archive-kind"><option value="priceTop">거래대금 상위</option><option value="quantTop">거래량 상위</option><option value="marketSum">시가총액</option><option value="popular">인기 종목</option><option value="up">상승</option><option value="flat">보합</option><option value="down">하락</option><option value="volSurge">거래량 급증</option><option value="volDrop">거래량 급감</option><option value="high52">52주 최고</option><option value="low52">52주 최저</option></select><button id="archive-query" class="archive-query" type="button">조회</button></div>
  <section class="archive-bread" aria-label="선택 날짜 시장 현황">
