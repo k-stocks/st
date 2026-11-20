@@ -159,3 +159,7 @@ html.dark .breadth-cell{background:#202733}
 .archive-actions #archive-delete{order:2!important}
 .archive-actions #manual-recovery{order:3!important}
 @media(max-width:650px){.archive-actions{width:100%;max-width:100%;margin-left:auto;justify-content:flex-end!important;flex-wrap:nowrap!important;gap:3px!important}.archive-actions button{flex:0 0 auto!important;white-space:nowrap!important;font-size:9px!important;padding:5px 4px!important;letter-spacing:-.25px}}
+
+/* V44: dedicated visible result area for manual archive recovery */
+.recovery-result{white-space:pre-wrap;line-height:1.5;margin:8px 0;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--card);font-size:12px}
+.recovery-result[hidden]{display:none!important}

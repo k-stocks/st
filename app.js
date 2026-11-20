@@ -1,4 +1,4 @@
-const WORKER='https://st.hundprint.workers.dev';
+const WORKER='https://st.mcraft-tiger-574.workers.dev';
 const DESKTOP='https://stock.naver.com';
 const $=id=>document.getElementById(id);
 const kinds={
@@ -570,23 +570,29 @@ if($('archive-date')){
  $('archive-refresh').addEventListener('click',()=>loadArchiveDates(true));
  $('archive-date').addEventListener('change',()=>loadArchiveBreadth($('archive-date').value));
  const recoveryBtn=$('manual-recovery');
- const recoveryStatus=$('archive-status');
+ const recoveryStatus=$('manual-recovery-result');
  if(recoveryBtn){
   const kstNowMinutes=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());return Number(p.find(x=>x.type==='hour')?.value||0)*60+Number(p.find(x=>x.type==='minute')?.value||0)};
   let recoveryBusy=false;
-  const updateRecoveryAvailability=()=>{const allowed=kstNowMinutes()>=20*60+10;if(!recoveryBusy){recoveryBtn.disabled=!allowed;recoveryBtn.textContent=allowed?'누락 데이터 복구':'20:10 이후 복구 가능';recoveryBtn.title=allowed?'오늘 누락된 데이터만 복구합니다.':'한국시간 20:10 이후에 사용할 수 있습니다.';} if(!allowed&&recoveryStatus)recoveryStatus.textContent='당일 랭킹 데이터는 한국시간 20:10에 최초 저장됩니다. 그 전에는 저장 및 복구가 실행되지 않습니다.';};
+  const updateRecoveryAvailability=()=>{const allowed=kstNowMinutes()>=20*60+10;if(!recoveryBusy){recoveryBtn.disabled=!allowed;recoveryBtn.textContent=allowed?'누락 데이터 복구':'20:10 이후 복구 가능';recoveryBtn.title=allowed?'오늘 누락된 데이터만 복구합니다.':'한국시간 20:10 이후에 사용할 수 있습니다.';} if(!allowed&&recoveryStatus){recoveryStatus.hidden=false;recoveryStatus.textContent='당일 랭킹 데이터는 한국시간 20:10에 최초 저장됩니다. 그 전에는 저장 및 복구가 실행되지 않습니다.';}};
   updateRecoveryAvailability();
   setInterval(updateRecoveryAvailability,30000);
   recoveryBtn.addEventListener('click',async()=>{
   if(kstNowMinutes()<20*60+10){updateRecoveryAvailability();return;}
   if(!confirm('오늘 저장 기록에서 실패하거나 누락된 항목만 다시 수집합니다. 정상 저장된 데이터는 다시 수집하지 않습니다. 실행할까요?'))return;
   recoveryBusy=true;recoveryBtn.disabled=true;recoveryBtn.textContent='복구 중…';
-  const status=$('archive-status');status.textContent='복구 요청 전송 완료 · 서버에서 오늘 기록을 확인하고 누락 항목을 복구하고 있습니다. 완료될 때까지 기다려 주세요.';
+  const status=$('manual-recovery-result');status.hidden=false;status.textContent='복구 요청 전송 완료 · 서버에서 오늘 기록을 확인하고 누락 항목을 복구하고 있습니다. 완료될 때까지 기다려 주세요.';
   try{
    const r=await fetch(WORKER+'/?archive=recover',{method:'POST',cache:'no-store'}),j=await r.json().catch(()=>({}));
    if(!r.ok)throw new Error(j.error||'복구 요청 실패 ('+r.status+')');
-   if(j.skipped)status.textContent='복구할 데이터가 없습니다. 오늘 수집 항목이 모두 정상입니다.';
-   else status.textContent=`수동 복구 완료 · 재수집 대상 ${j.retryCount||0}건 · 성공 ${j.recoveredSuccessCount||0}건 · 실패 ${j.recoveredFailureCount||0}건${j.retryCount===0?' · 오늘 수집 기록이 모두 정상입니다.':''}`;
+   if(j.skipped){
+    status.textContent=j.reason==='before-archive-time'?(j.message||'한국시간 20:10 이후에 복구할 수 있습니다.'):'복구할 데이터가 없습니다. 오늘 수집 항목이 모두 정상입니다.';
+   }else{
+    const retry=Number(j.retryCount)||0,success=Number(j.recoveredSuccessCount)||0,fail=Number(j.recoveredFailureCount)||0;
+    status.textContent=`수동 복구 완료 · 재수집 대상 ${retry}건 · 성공 ${success}건 · 실패 ${fail}건${retry===0?' · 오늘 수집 기록이 모두 정상입니다.':''}`;
+    const failed=(Array.isArray(j.results)?j.results:[]).filter(x=>!x.ok);
+    if(failed.length){status.textContent+='\n실패 항목: '+failed.map(x=>`${x.kind||'항목'} / ${x.marketType||'시장'} - ${x.error||'오류'}`).join(' · ');}
+   }
    await loadArchiveDates(true);
   }catch(e){status.textContent='수동 복구 실패: '+e.message}
   finally{recoveryBusy=false;recoveryBtn.disabled=false;updateRecoveryAvailability();}
@@ -604,7 +610,7 @@ if($('archive-date')){
  const deleteBtn=$('archive-delete');
  if(deleteBtn)deleteBtn.addEventListener('click',async()=>{
   const date=$('archive-date')?.value;
-  if(!date){recoveryStatus.textContent='삭제할 저장 날짜를 먼저 선택해 주세요.';return;}
+  if(!date){$('archive-status').textContent='삭제할 저장 날짜를 먼저 선택해 주세요.';return;}
   if(!confirm(`${date} 날짜의 랭킹 및 시장 등락 저장 기록을 모두 삭제합니다. 복구할 수 없습니다. 계속할까요?`))return;
   const token=prompt('삭제용 Worker 비밀번호(ARCHIVE_DELETE_TOKEN)를 입력하세요.');
   if(!token)return;
@@ -614,8 +620,8 @@ if($('archive-date')){
    if(!r.ok||!j.ok)throw new Error(j.error||'날짜 기록 삭제 실패');
    await loadArchiveDates(true);
    const breadth=$('breadth-meta');if(breadth&&j.date===date)loadMarketBreadth('latest');
-   recoveryStatus.textContent=`${date} 날짜 저장 기록 삭제 완료 · 삭제 변경 ${j.deletedChanges||0}건`;
-  }catch(e){recoveryStatus.textContent='날짜별 기록 삭제 실패: '+e.message;}
+   $('archive-status').textContent=`${date} 날짜 저장 기록 삭제 완료 · 삭제 변경 ${j.deletedChanges||0}건`;
+  }catch(e){$('archive-status').textContent='날짜별 기록 삭제 실패: '+e.message;}
   finally{deleteBtn.disabled=false;deleteBtn.textContent='날짜별 기록 삭제';}
  });
 }
