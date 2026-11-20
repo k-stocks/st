@@ -575,27 +575,27 @@ if($('archive-date')){
  if(recoveryBtn){
   const kstNowMinutes=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());return Number(p.find(x=>x.type==='hour')?.value||0)*60+Number(p.find(x=>x.type==='minute')?.value||0)};
   let recoveryBusy=false;
-  const updateRecoveryAvailability=()=>{const allowed=kstNowMinutes()>=20*60+10;if(!recoveryBusy){recoveryBtn.disabled=!allowed;recoveryBtn.textContent=allowed?'누락 데이터 복구':'20:10 이후 복구 가능';recoveryBtn.title=allowed?'오늘 누락된 데이터만 복구합니다.':'한국시간 20:10 이후에 사용할 수 있습니다.';} if(!allowed&&recoveryStatus){recoveryStatus.hidden=false;recoveryStatus.textContent='당일 랭킹 데이터는 한국시간 20:10에 최초 저장됩니다. 그 전에는 저장 및 복구가 실행되지 않습니다.';}};
+  const updateRecoveryAvailability=()=>{const allowed=kstNowMinutes()>=20*60+10;if(!recoveryBusy){recoveryBtn.disabled=!allowed;recoveryBtn.textContent=allowed?'누락 데이터 채우기':'20:10 이후 채우기 가능';recoveryBtn.title=allowed?'오늘 누락된 데이터만 채우기 작업합니다.':'한국시간 20:10 이후에 사용할 수 있습니다.';} if(!allowed&&recoveryStatus){recoveryStatus.hidden=false;recoveryStatus.textContent='당일 랭킹 데이터는 한국시간 20:10에 최초 저장됩니다. 그 전에는 저장 및 누락 데이터 채우기가 실행되지 않습니다.';}};
   updateRecoveryAvailability();
   setInterval(updateRecoveryAvailability,30000);
   recoveryBtn.addEventListener('click',async()=>{
   if(kstNowMinutes()<20*60+10){updateRecoveryAvailability();return;}
   if(!confirm('오늘 저장 기록에서 실패하거나 누락된 항목만 다시 수집합니다. 정상 저장된 데이터는 다시 수집하지 않습니다. 실행할까요?'))return;
-  recoveryBusy=true;recoveryBtn.disabled=true;recoveryBtn.textContent='복구 중…';
-  const status=$('manual-recovery-result');status.hidden=false;status.textContent='복구 요청 전송 완료 · 서버에서 오늘 기록을 확인하고 누락 항목을 복구하고 있습니다. 완료될 때까지 기다려 주세요.';
+  recoveryBusy=true;recoveryBtn.disabled=true;recoveryBtn.textContent='누락 데이터 채우기 중…';
+  const status=$('manual-recovery-result');status.hidden=false;status.textContent='누락 데이터 채우기 요청 전송 완료 · 서버에서 오늘 기록을 확인하고 누락 데이터를 채우고 있습니다. 완료될 때까지 기다려 주세요.';
   try{
    const r=await fetch(WORKER+'/?archive=recover',{method:'POST',cache:'no-store'}),j=await r.json().catch(()=>({}));
-   if(!r.ok)throw new Error(j.error||'복구 요청 실패 ('+r.status+')');
+   if(!r.ok)throw new Error(j.error||'누락 데이터 채우기 요청 실패 ('+r.status+')');
    if(j.skipped){
-    status.textContent=j.reason==='before-archive-time'?(j.message||'한국시간 20:10 이후에 복구할 수 있습니다.'):'복구할 데이터가 없습니다. 오늘 수집 항목이 모두 정상입니다.';
+    status.textContent=j.reason==='before-archive-time'?(j.message||'한국시간 20:10 이후에 누락 데이터 채우기를 실행할 수 있습니다.'):'누락 데이터가 없습니다. 오늘 수집 항목이 모두 정상입니다.';
    }else{
     const retry=Number(j.retryCount)||0,success=Number(j.recoveredSuccessCount)||0,fail=Number(j.recoveredFailureCount)||0;
-    status.textContent=`수동 복구 완료 · 재수집 대상 ${retry}건 · 성공 ${success}건 · 실패 ${fail}건${retry===0?' · 오늘 수집 기록이 모두 정상입니다.':''}`;
+    status.textContent=`수동 누락 데이터 채우기 완료 · 재수집 대상 ${retry}건 · 성공 ${success}건 · 실패 ${fail}건${retry===0?' · 오늘 수집 기록이 모두 정상입니다.':''}`;
     const failed=(Array.isArray(j.results)?j.results:[]).filter(x=>!x.ok);
     if(failed.length){status.textContent+='\n실패 항목: '+failed.map(x=>`${x.kind||'항목'} / ${x.marketType||'시장'} - ${x.error||'오류'}`).join(' · ');}
    }
    await loadArchiveDates(true);
-  }catch(e){status.textContent='수동 복구 실패: '+e.message}
+  }catch(e){status.textContent='수동 누락 데이터 채우기 실패: '+e.message}
   finally{recoveryBusy=false;recoveryBtn.disabled=false;updateRecoveryAvailability();}
   });
  }
