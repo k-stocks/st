@@ -1,4 +1,4 @@
-const WORKER='https://st.hundprint.workers.dev/';
+const WORKER='https://st.mcraft-tiger-574.workers.dev';
 const DESKTOP='https://stock.naver.com';
 const $=id=>document.getElementById(id);
 const kinds={
@@ -453,12 +453,13 @@ async function loadArchiveBreadth(date){
   if(!r.ok)throw new Error(j.error||'저장 시장 현황 조회 실패');
   const markets=j.markets||{};let any=false,complete=true;
   for(const marketType of ['KOSPI','KOSDAQ']){const m=markets[marketType];renderArchiveMarket(marketType,m);if(m){any=true;complete=complete&&!!m.complete;}}
-  meta.textContent=any?`${date} · ${complete?'저장 완료':'일부 데이터'} · 일별 기록`:'선택한 날짜의 시장 저장 데이터가 없습니다.';
+  meta.textContent=any?`${formatArchiveDate(date)} · ${complete?'저장 완료':'일부 데이터'} · 일별 기록`:'선택한 날짜의 시장 저장 데이터가 없습니다.';
  }catch(e){meta.textContent='저장 시장 현황 조회 실패 · '+e.message;}
 }
 // v25: saved daily archive controls, full market partitions and live-equivalent analysis
 const ARCHIVE_KINDS={priceTop:'priceTop',quantTop:'quantTop',marketSum:'marketSum',popular:'popular',up:'up',flat:'flat',down:'down',volSurge:'volSurge',volDrop:'volDrop',high52:'high52',low52:'low52'};
 let archiveN=20,archiveEtf=false,archiveMarket='ALL',archiveSort='rank',archivePayloadRows=[],archiveSectorOpen=false,archiveLoadSeq=0;
+function formatArchiveDate(date){const d=new Date(`${date}T12:00:00`);const weekday=['일','월','화','수','목','금','토'][d.getDay()];return `${date} (${weekday})`; }
 // 동일한 날짜·항목·시장 조합은 메모리 캐시를 사용해 D1 중복 조회를 방지합니다.
 const archiveRowsCache=new Map(),archiveRowsInflight=new Map();
 let archiveDatesLoaded=false;
@@ -510,7 +511,7 @@ async function loadArchiveDates(force=false){
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(j.error||'기록 서버 오류 ('+r.status+')');
   const dates=Array.isArray(j.dates)?j.dates:[];
-  sel.innerHTML=dates.length?dates.map(d=>`<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join(''):'<option value="">저장된 기록 없음</option>';
+  sel.innerHTML=dates.length?dates.map(d=>`<option value="${escapeHtml(d)}">${escapeHtml(formatArchiveDate(d))}</option>`).join(''):'<option value="">저장된 기록 없음</option>';
   if(previous&&dates.includes(previous))sel.value=previous;
   archiveDatesLoaded=true;
   status.textContent=dates.length?`최근 ${dates.length}일의 저장 날짜를 불러왔습니다. 날짜와 랭킹 항목을 선택해 조회하세요.`:(j.message||'저장 실행 이력이 없습니다. Worker의 D1·Cron 실행 내역을 확인해 주세요.');
@@ -550,10 +551,10 @@ async function loadArchiveRows(){
   archiveSectorOpen=false;
   if(!j.payload){
    renderArchive();
-   $('archive-status').textContent=`${date} · ${kind} · ${archiveMarket}: 해당 시장의 저장 기록이 없습니다. 해당 날짜의 자동 저장 성공 여부를 확인해 주세요.`;
+   $('archive-status').textContent=`${formatArchiveDate(date)} · ${kind} · ${archiveMarket}: 해당 시장의 저장 기록이 없습니다. 해당 날짜의 자동 저장 성공 여부를 확인해 주세요.`;
   }else{
    renderArchive();
-   $('archive-status').textContent=`${date} · ${kind} · ${archiveMarket} · ${archivePayloadRows.length}개 저장 데이터를 불러왔습니다. (캐시 적용)`;
+   $('archive-status').textContent=`${formatArchiveDate(date)} · ${kind} · ${archiveMarket} · ${archivePayloadRows.length}개 저장 데이터를 불러왔습니다. (캐시 적용)`;
   }
   const content=$('archive-content'),expand=$('archive-expand');
   if(content?.hidden){content.hidden=false;expand?.setAttribute('aria-expanded','true');if(expand)expand.textContent='▲ 저장 기록 전체 접기'}
@@ -611,7 +612,7 @@ if($('archive-date')){
  if(deleteBtn)deleteBtn.addEventListener('click',async()=>{
   const date=$('archive-date')?.value;
   if(!date){$('archive-status').textContent='삭제할 저장 날짜를 먼저 선택해 주세요.';return;}
-  if(!confirm(`${date} 날짜의 랭킹 및 시장 등락 저장 기록을 모두 삭제합니다. 복구할 수 없습니다. 계속할까요?`))return;
+  if(!confirm(`${formatArchiveDate(date)} 날짜의 랭킹 및 시장 등락 저장 기록을 모두 삭제합니다. 복구할 수 없습니다. 계속할까요?`))return;
   const token=prompt('삭제용 Worker 비밀번호(ARCHIVE_DELETE_TOKEN)를 입력하세요.');
   if(!token)return;
   deleteBtn.disabled=true;deleteBtn.textContent='삭제 중…';
@@ -620,7 +621,7 @@ if($('archive-date')){
    if(!r.ok||!j.ok)throw new Error(j.error||'날짜 기록 삭제 실패');
    await loadArchiveDates(true);
    const breadth=$('breadth-meta');if(breadth&&j.date===date)loadMarketBreadth('latest');
-   $('archive-status').textContent=`${date} 날짜 저장 기록 삭제 완료 · 삭제 변경 ${j.deletedChanges||0}건`;
+   $('archive-status').textContent=`${formatArchiveDate(date)} 날짜 저장 기록 삭제 완료 · 삭제 변경 ${j.deletedChanges||0}건`;
   }catch(e){$('archive-status').textContent='날짜별 기록 삭제 실패: '+e.message;}
   finally{deleteBtn.disabled=false;deleteBtn.textContent='날짜별 기록 삭제';}
  });
