@@ -149,3 +149,13 @@ html.dark .breadth-cell{background:#202733}
 @media(max-width:650px){.market-bread-depth{grid-template-columns:1fr}.market-bread-depth .breadth-market{width:100%}.market-breadth{grid-template-columns:1fr}.breadth-index>b{font-size:21px}.archive-bread-markets{grid-template-columns:1fr}.archive-bread-index>strong{font-size:17px}}
 /* V40: mobile KOSPI/KOSDAQ market cards stay side-by-side */
 @media(max-width:650px){.market-bread-depth{grid-template-columns:repeat(2,minmax(0,1fr))}.market-bread-depth .breadth-market{width:auto}.market-breadth{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:5px}.breadth-market{padding:6px}.breadth-index{gap:3px;margin:1px 0 5px}.breadth-index> b{font-size:16px}.breadth-index strong{font-size:9px}.breadth-index small{font-size:8px}.breadth-market-title{font-size:10px}.breadth-cells{gap:2px}.breadth-cell{padding:4px 1px}.breadth-cell small{font-size:8px;letter-spacing:-.35px}.breadth-cell b{font-size:11px}.archive-bread-markets{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.archive-bread-market{padding:5px}.archive-bread-index{gap:3px;margin:1px 0 5px}.archive-bread-index>strong{font-size:14px}.archive-bread-index em{font-size:9px}.archive-bread-index small{font-size:8px}.archive-bread-cells{gap:2px}.archive-bread-cells span{font-size:8px;padding:4px 1px}.archive-bread-cells strong{font-size:10px}}
+
+/* V42: archive actions order, single-line mobile and right aligned */
+@media(max-width:650px){.archive-actions{width:100%;display:flex;flex-wrap:nowrap;justify-content:flex-end;align-items:center;gap:4px}.archive-actions button{flex:0 0 auto;white-space:nowrap;font-size:10px!important;padding:5px 5px!important;min-width:0}}
+
+/* V43: enforce archive button order regardless of layout or prior CSS overrides */
+.archive-actions{display:flex!important;align-items:center;justify-content:flex-end!important;gap:4px;flex-wrap:nowrap!important}
+.archive-actions #archive-refresh{order:1!important}
+.archive-actions #archive-delete{order:2!important}
+.archive-actions #manual-recovery{order:3!important}
+@media(max-width:650px){.archive-actions{width:100%;max-width:100%;margin-left:auto;justify-content:flex-end!important;flex-wrap:nowrap!important;gap:3px!important}.archive-actions button{flex:0 0 auto!important;white-space:nowrap!important;font-size:9px!important;padding:5px 4px!important;letter-spacing:-.25px}}
