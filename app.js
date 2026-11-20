@@ -1,4 +1,4 @@
-const WORKER='https://st.hundprint.workers.dev';
+const WORKER='https://st.mcraft-tiger-574.workers.dev';
 const DESKTOP='https://stock.naver.com';
 const $=id=>document.getElementById(id);
 const kinds={
@@ -421,6 +421,41 @@ document.addEventListener('click',e=>{
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button[data-opt]');if(!b)return;const [k,v]=b.dataset.opt.split(':');if(k==='min')minVal=+v;else hlMode=v;cache[active]=null;load(active,true)});
 
 
+// 네이버 integration에서 실시간 지수와 등락종목 집계를 읽어 표시합니다. 자동 반복 호출은 하지 않습니다.
+function formatIndexValue(v){if(v==null||!Number.isFinite(Number(v)))return '—';return Number(v).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function formatIndexDiff(v){if(v==null||!Number.isFinite(Number(v)))return '—';const n=Number(v);return (n>0?'+':'')+n.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function setIndexColor(el,diff){if(!el)return;el.classList.remove('up','down','flat');el.classList.add(diff==null?'flat':Number(diff)>0?'up':Number(diff)<0?'down':'flat');}
+function renderLiveMarket(marketType,m){const prefix=marketType.toLowerCase(),c=m?.counts||{},idx=m?.index||{};
+ for(const kind of ['up','flat','down']){$('breadth-'+prefix+'-'+kind).textContent=m&&Number.isFinite(Number(c[kind]))?Number(c[kind]).toLocaleString('ko-KR'):'—';}
+ const indexEl=$('breadth-'+prefix+'-index'),diffEl=$('breadth-'+prefix+'-diff'),rateEl=$('breadth-'+prefix+'-rate');
+ if(indexEl)indexEl.textContent=formatIndexValue(idx.index);if(diffEl){diffEl.textContent=(idx.diff==null?'':Number(idx.diff)>0?'▲ ':Number(idx.diff)<0?'▼ ':'')+formatIndexDiff(idx.diff);setIndexColor(diffEl,idx.diff);}if(rateEl){rateEl.textContent=idx.rate==null?'':`(${Number(idx.rate)>0?'+':''}${Number(idx.rate).toFixed(2)}%)`;setIndexColor(rateEl,idx.rate);}
+}
+async function loadMarketBreadthLive(){
+ const meta=$('breadth-meta');try{
+  const r=await fetch(WORKER+'/?live=breadth',{cache:'no-store'}),j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||'실시간 시장 현황 조회 실패');
+  const markets=j.markets||{};let any=false,errors=[];
+  for(const marketType of ['KOSPI','KOSDAQ']){const m=markets[marketType];renderLiveMarket(marketType,m);if(m)any=true;}
+  if(Array.isArray(j.errors))errors=j.errors;
+  if(!any)meta.textContent='네이버 실시간 시장 현황 데이터를 가져오지 못했습니다.';
+  else meta.textContent=`네이버 실시간 시장 현황 · ${new Date(j.updatedAt||Date.now()).toLocaleTimeString('ko-KR')} 조회${errors.length?' · '+errors.join(' / '):''}`;
+ }catch(e){meta.textContent='실시간 시장 현황 조회 실패 · '+e.message;}
+}
+function renderArchiveMarket(marketType,m){const prefix=marketType.toLowerCase(),c=m?.counts||{},idx=m?.index||{};
+ for(const kind of ['up','flat','down']){$('archive-breadth-'+prefix+'-'+kind).textContent=m&&Number.isFinite(Number(c[kind]))?Number(c[kind]).toLocaleString('ko-KR'):'—';}
+ const indexEl=$('archive-bread-'+prefix+'-index'),diffEl=$('archive-bread-'+prefix+'-diff'),rateEl=$('archive-bread-'+prefix+'-rate');
+ if(indexEl)indexEl.textContent=formatIndexValue(idx.index);if(diffEl){diffEl.textContent=(idx.diff==null?'':Number(idx.diff)>0?'▲ ':Number(idx.diff)<0?'▼ ':'')+formatIndexDiff(idx.diff);setIndexColor(diffEl,idx.diff);}if(rateEl){rateEl.textContent=idx.rate==null?'':`(${Number(idx.rate)>0?'+':''}${Number(idx.rate).toFixed(2)}%)`;setIndexColor(rateEl,idx.rate);}
+}
+async function loadArchiveBreadth(date){
+ const meta=$('archive-bread-meta');if(!meta)return;
+ try{
+  const r=await fetch(WORKER+'/?archive=breadth&date='+encodeURIComponent(date||''),{cache:'no-store'}),j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||'저장 시장 현황 조회 실패');
+  const markets=j.markets||{};let any=false,complete=true;
+  for(const marketType of ['KOSPI','KOSDAQ']){const m=markets[marketType];renderArchiveMarket(marketType,m);if(m){any=true;complete=complete&&!!m.complete;}}
+  meta.textContent=any?`${date} · ${complete?'저장 완료':'일부 데이터'} · 일별 기록`:'선택한 날짜의 시장 저장 데이터가 없습니다.';
+ }catch(e){meta.textContent='저장 시장 현황 조회 실패 · '+e.message;}
+}
 // v25: saved daily archive controls, full market partitions and live-equivalent analysis
 const ARCHIVE_KINDS={priceTop:'priceTop',quantTop:'quantTop',marketSum:'marketSum',popular:'popular',up:'up',flat:'flat',down:'down',volSurge:'volSurge',volDrop:'volDrop',high52:'high52',low52:'low52'};
 let archiveN=20,archiveEtf=false,archiveMarket='ALL',archiveSort='rank',archivePayloadRows=[],archiveSectorOpen=false,archiveLoadSeq=0;
@@ -479,6 +514,7 @@ async function loadArchiveDates(force=false){
   if(previous&&dates.includes(previous))sel.value=previous;
   archiveDatesLoaded=true;
   status.textContent=dates.length?`최근 ${dates.length}일의 저장 날짜를 불러왔습니다. 날짜와 랭킹 항목을 선택해 조회하세요.`:(j.message||'저장 실행 이력이 없습니다. Worker의 D1·Cron 실행 내역을 확인해 주세요.');
+  if(sel.value)loadArchiveBreadth(sel.value);else loadArchiveBreadth('');
  }catch(e){
   sel.innerHTML='<option value="">날짜 조회 실패</option>';
   status.textContent='날짜 조회 실패: '+e.message+( /row read limit|free tier|exceeded/i.test(e.message)?' · D1 무료 사용량이 초기화된 뒤 다시 시도해 주세요.':' · Worker와 D1 바인딩을 확인해 주세요.');
@@ -532,9 +568,10 @@ async function loadArchiveRows(){
 }
 if($('archive-date')){
  $('archive-refresh').addEventListener('click',()=>loadArchiveDates(true));
+ $('archive-date').addEventListener('change',()=>loadArchiveBreadth($('archive-date').value));
  const recoveryBtn=$('manual-recovery');
+ const recoveryStatus=$('archive-status');
  if(recoveryBtn){
-  const recoveryStatus=$('archive-status');
   const kstNowMinutes=()=>{const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());return Number(p.find(x=>x.type==='hour')?.value||0)*60+Number(p.find(x=>x.type==='minute')?.value||0)};
   let recoveryBusy=false;
   const updateRecoveryAvailability=()=>{const allowed=kstNowMinutes()>=20*60+10;if(!recoveryBusy){recoveryBtn.disabled=!allowed;recoveryBtn.textContent=allowed?'누락 데이터 복구':'20:10 이후 복구 가능';recoveryBtn.title=allowed?'오늘 누락된 데이터만 복구합니다.':'한국시간 20:10 이후에 사용할 수 있습니다.';} if(!allowed&&recoveryStatus)recoveryStatus.textContent='당일 랭킹 데이터는 한국시간 20:10에 최초 저장됩니다. 그 전에는 저장 및 복구가 실행되지 않습니다.';};
@@ -563,6 +600,24 @@ if($('archive-date')){
  document.querySelectorAll('[data-archive-sort]').forEach(b=>b.addEventListener('click',()=>{archiveSort=b.dataset.archiveSort;document.querySelectorAll('[data-archive-sort]').forEach(x=>x.classList.toggle('selected',x===b));renderArchive()}));
  document.addEventListener('click',e=>{if(e.target&&e.target.id==='archive-sector-more'){archiveSectorOpen=!archiveSectorOpen;renderArchive()}});
  loadArchiveDates();
+ loadMarketBreadthLive();
+ const deleteBtn=$('archive-delete');
+ if(deleteBtn)deleteBtn.addEventListener('click',async()=>{
+  const date=$('archive-date')?.value;
+  if(!date){recoveryStatus.textContent='삭제할 저장 날짜를 먼저 선택해 주세요.';return;}
+  if(!confirm(`${date} 날짜의 랭킹 및 시장 등락 저장 기록을 모두 삭제합니다. 복구할 수 없습니다. 계속할까요?`))return;
+  const token=prompt('삭제용 Worker 비밀번호(ARCHIVE_DELETE_TOKEN)를 입력하세요.');
+  if(!token)return;
+  deleteBtn.disabled=true;deleteBtn.textContent='삭제 중…';
+  try{
+   const r=await fetch(WORKER+'/?archive=delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,token}),cache:'no-store'}),j=await r.json().catch(()=>({}));
+   if(!r.ok||!j.ok)throw new Error(j.error||'날짜 기록 삭제 실패');
+   await loadArchiveDates(true);
+   const breadth=$('breadth-meta');if(breadth&&j.date===date)loadMarketBreadth('latest');
+   recoveryStatus.textContent=`${date} 날짜 저장 기록 삭제 완료 · 삭제 변경 ${j.deletedChanges||0}건`;
+  }catch(e){recoveryStatus.textContent='날짜별 기록 삭제 실패: '+e.message;}
+  finally{deleteBtn.disabled=false;deleteBtn.textContent='날짜별 기록 삭제';}
+ });
 }
 
 // 명암(다크/라이트) 전환

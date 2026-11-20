@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f3f6fb"><title>국내 주식 랭킹 인사이트</title>
-<link rel="stylesheet" href="style.css?v=32">
+<link rel="stylesheet" href="style.css?v=38">
 <script>try{if(localStorage.getItem("theme_v1")==="dark"){document.documentElement.classList.add("dark");document.querySelector('meta[name="theme-color"]').content="#151a22"}}catch(e){}</script>
 <link rel="apple-touch-icon" href="./Stock_r.png">
 </head>
@@ -12,6 +12,19 @@
 <header><div class="brand"><i class="brand-mark"></i><div><b>오늘의 주요 거래 종목</b><small>TODAY'S MOVERS</small></div></div><div class="tools"><button id="theme" class="refresh theme-btn" type="button" aria-label="테마 전환" title="명암 전환">◐</button><button id="refresh" class="refresh" aria-label="새로고침" title="새로고침">↻</button></div></header>
 <main>
 <section class="intro"><div><span class="eyebrow">MARKET SCANNER</span><h1>오늘의 국내 주식 랭킹</h1><p>네이버 증권 기준 · KRX 전체 시장</p></div><div class="updated"><span class="live-dot"></span><span id="updated">데이터 확인 중</span></div></section>
+<section class="market-breadth" id="market-breadth" aria-label="코스피 코스닥 실시간 시장 현황">
+ <div class="breadth-market">
+  <div class="breadth-market-title">코스피 <span>KOSPI</span></div>
+  <div class="breadth-index"><b id="breadth-kospi-index">—</b><div><strong id="breadth-kospi-diff">—</strong><small id="breadth-kospi-rate">—</small></div></div>
+  <div class="breadth-cells"><div class="breadth-cell"><small>상승</small><b class="up" id="breadth-kospi-up">—</b></div><div class="breadth-cell"><small>보합</small><b class="flat" id="breadth-kospi-flat">—</b></div><div class="breadth-cell"><small>하락</small><b class="down" id="breadth-kospi-down">—</b></div></div>
+ </div>
+ <div class="breadth-market">
+  <div class="breadth-market-title">코스닥 <span>KOSDAQ</span></div>
+  <div class="breadth-index"><b id="breadth-kosdaq-index">—</b><div><strong id="breadth-kosdaq-diff">—</strong><small id="breadth-kosdaq-rate">—</small></div></div>
+  <div class="breadth-cells"><div class="breadth-cell"><small>상승</small><b class="up" id="breadth-kosdaq-up">—</b></div><div class="breadth-cell"><small>보합</small><b class="flat" id="breadth-kosdaq-flat">—</b></div><div class="breadth-cell"><small>하락</small><b class="down" id="breadth-kosdaq-down">—</b></div></div>
+ </div>
+ <div class="breadth-meta" id="breadth-meta">네이버 실시간 시장 현황을 불러옵니다.</div>
+</section>
 <nav class="tabs" id="tabs" aria-label="종목 랭킹">
 <button class="active" data-kind="priceTop">거래대금 상위</button>
 <button data-kind="quantTop">거래량 상위</button>
@@ -37,8 +50,16 @@
 <div id="notice" class="notice">네이버 증권 공개 데이터를 불러옵니다. 실제 집계 시점과 거래소 반영 시점에 따라 HTS와 차이가 날 수 있습니다.</div>
 </section>
 <section class="sector-card archive-card" id="daily-archive">
- <div class="section-head"><div><h2>일별 종가 기록</h2><p>매일 한국시간 20:10 자동 저장 · 날짜별 11개 랭킹</p></div><div class="archive-actions"><button id="manual-recovery" type="button">누락 데이터 복구</button><button id="archive-refresh" type="button">기록 새로고침</button></div></div>
+ <div class="section-head"><div><h2>일별 종가 기록</h2><p>매일 한국시간 20:10 자동 저장 · 날짜별 11개 랭킹</p></div><div class="archive-actions"><button id="manual-recovery" type="button">누락 데이터 복구</button><button id="archive-refresh" type="button">기록 새로고침</button><button id="archive-delete" type="button">날짜별 기록 삭제</button></div></div>
  <div class="archive-controls"><label for="archive-date">저장 날짜</label><select id="archive-date"><option value="">기록 확인 중…</option></select><label for="archive-kind">랭킹 항목</label><select id="archive-kind"><option value="priceTop">거래대금 상위</option><option value="quantTop">거래량 상위</option><option value="marketSum">시가총액</option><option value="popular">인기 종목</option><option value="up">상승</option><option value="flat">보합</option><option value="down">하락</option><option value="volSurge">거래량 급증</option><option value="volDrop">거래량 급감</option><option value="high52">52주 최고</option><option value="low52">52주 최저</option></select><button id="archive-query" class="archive-query" type="button">조회</button></div>
+ <section class="archive-bread" aria-label="선택 날짜 시장 현황">
+  <div class="archive-bread-title">선택 날짜 시장 현황</div>
+  <div class="archive-bread-markets">
+   <div class="archive-bread-market"><b>코스피</b><div class="archive-bread-index"><strong id="archive-bread-kospi-index">—</strong><span><em id="archive-bread-kospi-diff">—</em><small id="archive-bread-kospi-rate">—</small></span></div><div class="archive-bread-cells"><span>상승 <strong class="up" id="archive-breadth-kospi-up">—</strong></span><span>보합 <strong class="flat" id="archive-breadth-kospi-flat">—</strong></span><span>하락 <strong class="down" id="archive-breadth-kospi-down">—</strong></span></div></div>
+   <div class="archive-bread-market"><b>코스닥</b><div class="archive-bread-index"><strong id="archive-bread-kosdaq-index">—</strong><span><em id="archive-bread-kosdaq-diff">—</em><small id="archive-bread-kosdaq-rate">—</small></span></div><div class="archive-bread-cells"><span>상승 <strong class="up" id="archive-breadth-kosdaq-up">—</strong></span><span>보합 <strong class="flat" id="archive-breadth-kosdaq-flat">—</strong></span><span>하락 <strong class="down" id="archive-breadth-kosdaq-down">—</strong></span></div></div>
+  </div>
+  <div id="archive-bread-meta" class="breadth-meta">선택 날짜의 저장된 시장 데이터를 불러옵니다.</div>
+ </section>
  <button id="archive-expand" class="more archive-expand" type="button" aria-expanded="false">▼ 저장 기록 전체 펼쳐보기</button>
  <div id="archive-status" class="notice recovery-status" role="status" aria-live="polite">자동 저장 기록을 불러옵니다.</div>
  <div id="archive-content" hidden>
@@ -56,5 +77,5 @@
 </main>
 <footer>DATA SOURCE · <a href="https://stock.naver.com/market/stock/kr/stocklist/priceTop" target="_blank" rel="noopener">네이버 증권 실시간 랭킹</a></footer>
 </div>
-<script src="app.js?v=32"></script>
+<script src="app.js?v=35"></script>
 </body></html>
